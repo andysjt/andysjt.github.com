@@ -21,7 +21,7 @@
     var map = new mapboxgl.Map({
         container: 'map',
         zoom: 16,
-        center: [118.795542,32.071916],
+        center: [118.810053, 32.044403],
         pitch: 60,
         bearing: 80,
         style: 'mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y'
@@ -48,7 +48,7 @@
             }
         });
 
-        $.getJSON('http://wx.powerfun.com.cn/map/getdata?routeId=1354', function(data){
+        $.getJSON('https://wx.powerfun.com.cn/map/getdata?routeId=1354', function(data){
             console.log(data);
             var arr = [];
             data.List.map(item=>{

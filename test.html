@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Add 3D terrain to a map</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js" integrity="sha512-siRTCNQkkHmxAwPkDt8P/TUrtxSBTSxGyD2G+uliEjS7b5uLjAPgQxIwO6JWPaTQ8doAfBHcHPMut84oNdT/2g==" crossorigin="anonymous"></script>
+<style>
+	body { margin: 0; padding: 0; }
+	#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiYW5keXNqdCIsImEiOiJja2ZhajE5OGwwamRiMnltcW96bHk0ZWFuIn0.GvKanc6UveWSvIjS9HfBPA';
+    var map = new mapboxgl.Map({
+        container: 'map',
+        zoom: 16,
+        center: [118.795542,32.071916],
+        pitch: 60,
+        bearing: 80,
+        style: 'mapbox://styles/mapbox-map-design/ckhqrf2tz0dt119ny6azh975y'
+    });
+
+    map.on('load', function () {
+        map.addSource('mapbox-dem', {
+            'type': 'raster-dem',
+            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            'tileSize': 512,
+            'maxzoom': 14
+        });
+        // add the DEM source as a terrain layer with exaggerated height
+        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+
+        // add a sky layer that will show when the map is highly pitched
+        map.addLayer({
+            'id': 'sky',
+            'type': 'sky',
+            'paint': {
+                'sky-type': 'atmosphere',
+                'sky-atmosphere-sun': [0.0, 0.0],
+                'sky-atmosphere-sun-intensity': 15
+            }
+        });
+
+        $.getJSON('http://wx.powerfun.com.cn/map/getdata?routeId=1354', function(data){
+            console.log(data);
+            var arr = [];
+            data.List.map(item=>{
+                arr.push(item.Point.reverse());
+            });
+            console.log(arr);
+            addLine(arr);
+            var marker = new mapboxgl.Marker()
+            .setLngLat(arr[0])
+            .addTo(map);
+
+
+            let line = turf.lineString(arr);
+
+            let index = -1;
+            setInterval(function(){
+                index ++;
+                marker.setLngLat(arr[index]);
+
+                let point1 = turf.point(arr[index]);
+                let point2 = turf.point(arr[index+1]);
+
+                let bearing = turf.bearing(point1, point2);
+                map.flyTo({
+                    center: arr[index],
+                    //bearing: backgroundThread.getBearing(item.PreDistance, item.NextDistance),
+                    bearing: bearing,
+                    curve: 1,
+                    easing: function (t) {
+                        return t;
+                    },
+                    essential: true,
+                    duration: 1000
+                });
+            }, 1000);
+            
+
+        });
+
+
+        
+
+    });
+
+    function addLine(arr){
+        map.addSource('route', {
+            'type': 'geojson',
+            'data': {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': {
+                    'type': 'LineString',
+                    'coordinates': arr
+                }
+            }
+        });
+        map.addLayer({
+            'id': 'route',
+            'type': 'line',
+            'source': 'route',
+            'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+            },
+            'paint': {
+            'line-color': 'red',
+            'line-width': 8
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
